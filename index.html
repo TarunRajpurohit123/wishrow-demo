@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wishrows Customizer</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap');
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f4f4f9;
+      color: #333;
+      font-family: "Nunito Sans", serif;
+     font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+  font-variation-settings:
+    "wdth" 100,
+    "YTLC" 500;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #555;
+    }
+
+    .upload-section, .controls {
+      margin: 20px 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .upload-section label, .controls label {
+      font-weight: bold;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background-color: #f9f9f9;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    input[type="file"]:hover {
+      border-color: #010101;
+      background-color: #e7f0fc;
+    }
+
+    input[type="number"] {
+      width: 80px;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    input[type="number"]:hover, input[type="number"]:focus {
+      border-color: #010101;
+      background-color: #e7f0fc;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #010101;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    button:hover {
+      background-color: #010101;
+      transform: scale(1.05);
+    }
+
+    canvas {
+      border: 2px dashed #ddd;
+      display: block;
+      margin: 20px auto;
+      cursor: crosshair;
+      border-radius: 8px;
+      background-color: #fff;
+    }
+
+    .resize-handle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: red;
+      border-radius: 50%;
+    }
+
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.9em;
+      color: #777;
+    }
+    #baseUpload,#overlayUpload{
+      position: relative;
+    }
+    #baseUpload::after{
+      content:"Upload Base Image";
+      position:absolute;
+      top:0;
+      left:0;
+      display: flex;
+      justify-content: center;
+      padding-top: 0.8rem;
+      width:100%;
+      height:100%;
+      background:rgb(230, 230, 230);
+    }
+    #overlayUpload::after{
+      content:"Upload Overlay Image";
+      position:absolute;
+      top:0;
+      left:0;
+      display: flex;
+      justify-content: center;
+      padding-top: 0.8rem;
+      width:100%;
+      height:100%;
+      background:rgb(230, 230, 230);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Resizable Image Overlay</h1>
+
+    <div class="upload-section">
+      <div>
+        <input type="file" id="baseUpload" accept="image/*">
+      </div>
+      <div>
+        <input type="file" id="overlayUpload" accept="image/*">
+      </div>
+    </div>
+
+    <div class="controls">
+      <label for="opacity">Overlay Opacity (0-1):</label>
+      <input type="number" id="opacity" value="0.5" step="0.1" min="0" max="1">
+      <button id="applyOpacity">Apply Opacity</button>
+    </div>
+
+    <canvas id="imageCanvas" width="800" height="600"></canvas>
+
+    <div class="footer">
+      <p>Drag and resize the overlay image directly on the canvas. Adjust opacity as needed.</p>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("imageCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let baseImage = null;
+    let overlayImage = null;
+
+    let overlayX = 50; // Initial position for overlay
+    let overlayY = 50;
+    let overlayWidth = 150; // Initial width of overlay
+    let overlayHeight = 150; // Initial height of overlay
+    let overlayOpacity = 0.5; // Initial transparency of overlay
+
+    let isDragging = false;
+    let isResizing = false;
+    let resizeHandleSize = 10;
+    let offsetX, offsetY;
+
+    // Load base image
+    document.getElementById("baseUpload").addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            baseImage = img;
+            drawCanvas();
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Load overlay image
+    document.getElementById("overlayUpload").addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            overlayImage = img;
+            drawCanvas();
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Apply overlay opacity
+    document.getElementById("applyOpacity").addEventListener("click", () => {
+      const newOpacity = parseFloat(document.getElementById("opacity").value);
+      if (newOpacity >= 0 && newOpacity <= 1) {
+        overlayOpacity = newOpacity;
+        drawCanvas();
+      } else {
+        alert("Please enter a valid opacity value (0-1).");
+      }
+    });
+
+    // Draw images on canvas
+    function drawCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (baseImage) ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+      if (overlayImage) {
+        ctx.globalAlpha = overlayOpacity; // Set transparency
+        ctx.drawImage(overlayImage, overlayX, overlayY, overlayWidth, overlayHeight);
+        ctx.globalAlpha = 1.0; // Reset transparency
+        drawResizeHandle();
+      }
+    }
+
+    // Draw resize handle
+    function drawResizeHandle() {
+      ctx.fillStyle = "red";
+      ctx.fillRect(
+        overlayX + overlayWidth - resizeHandleSize / 2,
+        overlayY + overlayHeight - resizeHandleSize / 2,
+        resizeHandleSize,
+        resizeHandleSize
+      );
+    }
+
+    // Check if the mouse is over the resize handle
+    function isOverResizeHandle(mouseX, mouseY) {
+      return (
+        mouseX >= overlayX + overlayWidth - resizeHandleSize &&
+        mouseX <= overlayX + overlayWidth + resizeHandleSize &&
+        mouseY >= overlayY + overlayHeight - resizeHandleSize &&
+        mouseY <= overlayY + overlayHeight + resizeHandleSize
+      );
+    }
+
+    // Mouse down event
+    canvas.addEventListener("mousedown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      if (isOverResizeHandle(mouseX, mouseY)) {
+        isResizing = true;
+      } else if (
+        mouseX >= overlayX &&
+        mouseX <= overlayX + overlayWidth &&
+        mouseY >= overlayY &&
+        mouseY <= overlayY + overlayHeight
+      ) {
+        isDragging = true;
+        offsetX = mouseX - overlayX;
+        offsetY = mouseY - overlayY;
+      }
+    });
+
+    // Mouse move event
+    canvas.addEventListener("mousemove", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      if (isResizing) {
+        overlayWidth = mouseX - overlayX;
+        overlayHeight = mouseY - overlayY;
+        drawCanvas();
+      } else if (isDragging) {
+        overlayX = mouseX - offsetX;
+        overlayY = mouseY - offsetY;
+        drawCanvas();
+      } else {
+        canvas.style.cursor = isOverResizeHandle(mouseX, mouseY) ? "se-resize" : "crosshair";
+      }
+    });
+
+    // Mouse up event
+    canvas.addEventListener("mouseup", () => {
+      isDragging = false;
+      isResizing = false;
+    });
+
+    // Mouse leave event
+    canvas.addEventListener("mouseleave", () => {
+      isDragging = false;
+      isResizing = false;
+    });
+  </script>
+</body>
+</html>
