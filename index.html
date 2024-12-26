@@ -267,65 +267,70 @@
       ctx.setLineDash([]);  // Reset line dash
     }
 
-    canvas.addEventListener("mousedown", (e) => {
+    // Mouse and touch event listeners
+    function handleMouseEvent(e) {
       if (!isResizeEnabled) return;
 
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      if (
-        mouseX >= overlayX + overlayWidth - resizeHandleSize &&
-        mouseX <= overlayX + overlayWidth + resizeHandleSize &&
-        mouseY >= overlayY + overlayHeight - resizeHandleSize &&
-        mouseY <= overlayY + overlayHeight + resizeHandleSize
-      ) {
-        isResizing = true;
-      } else if (
-        mouseX >= overlayX &&
-        mouseX <= overlayX + overlayWidth &&
-        mouseY >= overlayY &&
-        mouseY <= overlayY + overlayHeight
-      ) {
-        isDragging = true;
-        offsetX = mouseX - overlayX;
-        offsetY = mouseY - overlayY;
+      if (e.type === 'mousedown' || e.type === 'touchstart') {
+        if (
+          mouseX >= overlayX + overlayWidth - resizeHandleSize &&
+          mouseX <= overlayX + overlayWidth + resizeHandleSize &&
+          mouseY >= overlayY + overlayHeight - resizeHandleSize &&
+          mouseY <= overlayY + overlayHeight + resizeHandleSize
+        ) {
+          isResizing = true;
+        } else if (
+          mouseX >= overlayX &&
+          mouseX <= overlayX + overlayWidth &&
+          mouseY >= overlayY &&
+          mouseY <= overlayY + overlayHeight
+        ) {
+          isDragging = true;
+          offsetX = mouseX - overlayX;
+          offsetY = mouseY - overlayY;
+        }
       }
-    });
-
-    canvas.addEventListener("mousemove", (e) => {
-      if (!isResizeEnabled) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      if (isResizing) {
-        overlayWidth = mouseX - overlayX;
-        overlayHeight = mouseY - overlayY;
-        drawCanvas();
-      } else if (isDragging) {
-        overlayX = mouseX - offsetX;
-        overlayY = mouseY - offsetY;
-        drawCanvas();
+      if (e.type === 'mousemove' || e.type === 'touchmove') {
+        if (isResizing) {
+          overlayWidth = mouseX - overlayX;
+          overlayHeight = mouseY - overlayY;
+          drawCanvas();
+        } else if (isDragging) {
+          overlayX = mouseX - offsetX;
+          overlayY = mouseY - offsetY;
+          drawCanvas();
+        }
       }
-    });
+    }
 
+    // Touch event listeners (for mobile)
+    canvas.addEventListener("mousedown", handleMouseEvent);
+    canvas.addEventListener("mousemove", handleMouseEvent);
     canvas.addEventListener("mouseup", () => {
       isDragging = false;
       isResizing = false;
     });
-
     canvas.addEventListener("mouseleave", () => {
       isDragging = false;
       isResizing = false;
     });
 
-    // Add download functionality
+    canvas.addEventListener("touchstart", handleMouseEvent);
+    canvas.addEventListener("touchmove", handleMouseEvent);
+    canvas.addEventListener("touchend", () => {
+      isDragging = false;
+      isResizing = false;
+    });
+
+    // Download Canvas
     document.getElementById("downloadButton").addEventListener("click", () => {
       const link = document.createElement("a");
       link.download = "canvas-image.png";
-      link.href = canvas.toDataURL("image/png");
+      link.href = canvas.toDataURL();
       link.click();
     });
   </script>
