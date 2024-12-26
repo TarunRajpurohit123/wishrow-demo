@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wishrows Customizer</title>
+  <title>Resizable Image Overlay</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400&display=swap');
     body {
-      font-family: "Nunito Sans", serif;
+      font-family: "Nunito Sans", sans-serif;
+      margin: 20px;
       background-color: #f4f4f9;
       color: #333;
-      margin: 20px;
     }
 
     .container {
@@ -26,7 +27,7 @@
       color: #555;
     }
 
-    .upload-section, .controls {
+    .upload-section {
       margin: 20px 0;
       display: flex;
       flex-wrap: wrap;
@@ -41,14 +42,33 @@
       border-radius: 6px;
       background-color: #f9f9f9;
       cursor: pointer;
+      transition: all 0.3s ease;
     }
 
-    input[type="number"] {
-      width: 80px;
-      padding: 5px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      outline: none;
+    input[type="file"]:hover {
+      border-color: #010101;
+      background-color: #e7f0fc;
+    }
+
+    canvas {
+      border: 2px dashed #ddd;
+      display: block;
+      margin: 20px auto;
+      cursor: crosshair;
+      border-radius: 8px;
+      background-color: #fff;
+    }
+
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.9em;
+      color: #777;
+    }
+
+    .toggle-controls {
+      text-align: center;
+      margin: 20px 0;
     }
 
     button {
@@ -60,21 +80,20 @@
       cursor: pointer;
       font-size: 14px;
       font-weight: bold;
+      transition: background-color 0.3s ease;
     }
 
-    canvas {
-      border: 2px dashed #ddd;
-      display: block;
-      margin: 20px auto;
-      border-radius: 8px;
-      background-color: #fff;
+    button:hover {
+      background-color: #333;
     }
 
-    .footer {
-      margin-top: 20px;
+    .opacity-controls {
       text-align: center;
-      font-size: 0.9em;
-      color: #777;
+      margin-top: 20px;
+    }
+
+    .opacity-controls input {
+      width: 100%;
     }
   </style>
 </head>
@@ -88,16 +107,20 @@
       </div>
     </div>
 
-    <div class="controls">
-      <label for="opacity">Overlay Opacity (0-1):</label>
-      <input type="number" id="opacity" value="0.5" step="0.1" min="0" max="1">
-      <button id="applyOpacity">Apply Opacity</button>
+    <div class="toggle-controls">
+      <button id="toggleResize">Enable Resizing</button>
     </div>
 
-    <canvas id="imageCanvas"></canvas>
+    <div class="opacity-controls">
+      <label for="opacityRange">Overlay Opacity</label>
+      <input type="range" id="opacityRange" min="0" max="1" step="0.01" value="1">
+      <span id="opacityValue">100%</span>
+    </div>
+
+    <canvas id="imageCanvas" width="800"></canvas>
 
     <div class="footer">
-      <p>Drag and resize the overlay image directly on the canvas. Adjust opacity as needed.</p>
+      <p>Drag, resize, and adjust opacity of the overlay image directly on the canvas.</p>
     </div>
   </div>
 
@@ -106,29 +129,22 @@
     const ctx = canvas.getContext("2d");
 
     let baseImage = new Image();
-    baseImage.src = "tshirt.jpg"; // Replace with the actual path to your base image
-
     let overlayImage = null;
 
-    let overlayX = 50;
+    let overlayX = 50; 
     let overlayY = 50;
     let overlayWidth = 150;
     let overlayHeight = 150;
-    let overlayOpacity = 0.5;
+    let overlayOpacity = 1;  // Initial opacity
 
     let isDragging = false;
     let isResizing = false;
+    let isResizeEnabled = false;
     let resizeHandleSize = 10;
     let offsetX, offsetY;
 
-    baseImage.onload = () => {
-      // Set canvas dimensions proportional to the base image
-      const aspectRatio = baseImage.naturalWidth / baseImage.naturalHeight;
-      canvas.width = 800; // Fixed width
-      canvas.height = canvas.width / aspectRatio; // Dynamic height
-
-      drawCanvas();
-    };
+    baseImage.src = "t.jpg"; 
+    baseImage.onload = drawCanvas;
 
     document.getElementById("overlayUpload").addEventListener("change", (event) => {
       const file = event.target.files[0];
@@ -146,24 +162,43 @@
       }
     });
 
-    document.getElementById("applyOpacity").addEventListener("click", () => {
-      const newOpacity = parseFloat(document.getElementById("opacity").value);
-      if (newOpacity >= 0 && newOpacity <= 1) {
-        overlayOpacity = newOpacity;
-        drawCanvas();
-      } else {
-        alert("Please enter a valid opacity value (0-1).");
-      }
+    document.getElementById("toggleResize").addEventListener("click", () => {
+      isResizeEnabled = !isResizeEnabled;
+      const toggleButton = document.getElementById("toggleResize");
+      toggleButton.textContent = isResizeEnabled ? "Disable Resizing" : "Enable Resizing";
+      drawCanvas();
+    });
+
+    document.getElementById("opacityRange").addEventListener("input", (e) => {
+      overlayOpacity = e.target.value;
+      document.getElementById("opacityValue").textContent = `${Math.round(overlayOpacity * 100)}%`;
+      drawCanvas();
     });
 
     function drawCanvas() {
+      // Clear previous canvas content
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+
+      // Calculate the baseImage height based on its aspect ratio
+      if (baseImage.width && baseImage.height) {
+        const aspectRatio = baseImage.width / baseImage.height;
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvasWidth / aspectRatio;
+
+        canvas.height = canvasHeight;  // Set the canvas height based on the aspect ratio of the base image
+      }
+
+      // Draw the base image on the canvas
+      if (baseImage) {
+        ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+      }
+
+      // Draw the overlay image on the canvas with opacity
       if (overlayImage) {
-        ctx.globalAlpha = overlayOpacity;
+        ctx.globalAlpha = overlayOpacity;  // Set opacity
         ctx.drawImage(overlayImage, overlayX, overlayY, overlayWidth, overlayHeight);
-        ctx.globalAlpha = 1.0;
-        drawResizeHandle();
+        ctx.globalAlpha = 1.0;  // Reset globalAlpha after drawing the overlay image
+        if (isResizeEnabled) drawResizeHandle();
       }
     }
 
@@ -177,21 +212,19 @@
       );
     }
 
-    function isOverResizeHandle(mouseX, mouseY) {
-      return (
-        mouseX >= overlayX + overlayWidth - resizeHandleSize &&
-        mouseX <= overlayX + overlayWidth + resizeHandleSize &&
-        mouseY >= overlayY + overlayHeight - resizeHandleSize &&
-        mouseY <= overlayY + overlayHeight + resizeHandleSize
-      );
-    }
-
     canvas.addEventListener("mousedown", (e) => {
+      if (!isResizeEnabled) return;
+
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      if (isOverResizeHandle(mouseX, mouseY)) {
+      if (
+        mouseX >= overlayX + overlayWidth - resizeHandleSize &&
+        mouseX <= overlayX + overlayWidth + resizeHandleSize &&
+        mouseY >= overlayY + overlayHeight - resizeHandleSize &&
+        mouseY <= overlayY + overlayHeight + resizeHandleSize
+      ) {
         isResizing = true;
       } else if (
         mouseX >= overlayX &&
@@ -206,6 +239,8 @@
     });
 
     canvas.addEventListener("mousemove", (e) => {
+      if (!isResizeEnabled) return;
+
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
