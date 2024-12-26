@@ -198,7 +198,10 @@
         ctx.globalAlpha = overlayOpacity;  // Set opacity
         ctx.drawImage(overlayImage, overlayX, overlayY, overlayWidth, overlayHeight);
         ctx.globalAlpha = 1.0;  // Reset globalAlpha after drawing the overlay image
-        if (isResizeEnabled) drawResizeHandle();
+        if (isResizeEnabled) {
+          drawResizeHandle();
+          drawDashedBorder();  // Draw the dashed border when resizing is enabled
+        }
       }
     }
 
@@ -210,6 +213,15 @@
         resizeHandleSize,
         resizeHandleSize
       );
+    }
+
+    // Function to draw a dashed border around the overlay image area
+    function drawDashedBorder() {
+      ctx.setLineDash([5, 3]);  // Set the dashed line pattern
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "blue";
+      ctx.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
+      ctx.setLineDash([]);  // Reset line dash
     }
 
     canvas.addEventListener("mousedown", (e) => {
