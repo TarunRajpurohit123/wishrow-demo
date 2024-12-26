@@ -59,7 +59,7 @@
       cursor: crosshair;
       border-radius: 8px;
       background-color: #fff;
-      max-width: 100%;
+      width: 100%;  /* Make the canvas responsive */
       height: auto;
     }
 
@@ -97,7 +97,6 @@
       width: 100%;
     }
 
-    /* Media queries for smaller screens */
     @media (max-width: 768px) {
       .container {
         padding: 15px;
@@ -156,7 +155,7 @@
       <span id="opacityValue">100%</span>
     </div>
 
-    <canvas id="imageCanvas" width="800"></canvas>
+    <canvas id="imageCanvas"></canvas>
 
     <div class="download-controls">
       <button id="downloadButton">Download Canvas</button>
@@ -186,7 +185,7 @@
     let resizeHandleSize = 10;
     let offsetX, offsetY;
 
-    baseImage.src = "t.jpg"; 
+    baseImage.src = "t.jpg";  // Replace with your base image
     baseImage.onload = drawCanvas;
 
     document.getElementById("overlayUpload").addEventListener("change", (event) => {
@@ -267,70 +266,71 @@
       ctx.setLineDash([]);  // Reset line dash
     }
 
-    // Mouse and touch event listeners
-    function handleMouseEvent(e) {
+    // Mouse and touch events
+    function handleStart(e) {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX ? e.clientX - rect.left : e.touches[0].clientX - rect.left;
+      const mouseY = e.clientY ? e.clientY - rect.top : e.touches[0].clientY - rect.top;
+
       if (!isResizeEnabled) return;
 
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      if (e.type === 'mousedown' || e.type === 'touchstart') {
-        if (
-          mouseX >= overlayX + overlayWidth - resizeHandleSize &&
-          mouseX <= overlayX + overlayWidth + resizeHandleSize &&
-          mouseY >= overlayY + overlayHeight - resizeHandleSize &&
-          mouseY <= overlayY + overlayHeight + resizeHandleSize
-        ) {
-          isResizing = true;
-        } else if (
-          mouseX >= overlayX &&
-          mouseX <= overlayX + overlayWidth &&
-          mouseY >= overlayY &&
-          mouseY <= overlayY + overlayHeight
-        ) {
-          isDragging = true;
-          offsetX = mouseX - overlayX;
-          offsetY = mouseY - overlayY;
-        }
-      }
-      if (e.type === 'mousemove' || e.type === 'touchmove') {
-        if (isResizing) {
-          overlayWidth = mouseX - overlayX;
-          overlayHeight = mouseY - overlayY;
-          drawCanvas();
-        } else if (isDragging) {
-          overlayX = mouseX - offsetX;
-          overlayY = mouseY - offsetY;
-          drawCanvas();
-        }
+      if (
+        mouseX >= overlayX + overlayWidth - resizeHandleSize &&
+        mouseX <= overlayX + overlayWidth + resizeHandleSize &&
+        mouseY >= overlayY + overlayHeight - resizeHandleSize &&
+        mouseY <= overlayY + overlayHeight + resizeHandleSize
+      ) {
+        isResizing = true;
+      } else if (
+        mouseX >= overlayX &&
+        mouseX <= overlayX + overlayWidth &&
+        mouseY >= overlayY &&
+        mouseY <= overlayY + overlayHeight
+      ) {
+        isDragging = true;
+        offsetX = mouseX - overlayX;
+        offsetY = mouseY - overlayY;
       }
     }
 
-    // Touch event listeners (for mobile)
-    canvas.addEventListener("mousedown", handleMouseEvent);
-    canvas.addEventListener("mousemove", handleMouseEvent);
-    canvas.addEventListener("mouseup", () => {
-      isDragging = false;
-      isResizing = false;
-    });
-    canvas.addEventListener("mouseleave", () => {
-      isDragging = false;
-      isResizing = false;
-    });
+    function handleMove(e) {
+      if (!isResizeEnabled) return;
 
-    canvas.addEventListener("touchstart", handleMouseEvent);
-    canvas.addEventListener("touchmove", handleMouseEvent);
-    canvas.addEventListener("touchend", () => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX ? e.clientX - rect.left : e.touches[0].clientX - rect.left;
+      const mouseY = e.clientY ? e.clientY - rect.top : e.touches[0].clientY - rect.top;
+
+      if (isResizing) {
+        overlayWidth = mouseX - overlayX;
+        overlayHeight = mouseY - overlayY;
+        drawCanvas();
+      } else if (isDragging) {
+        overlayX = mouseX - offsetX;
+        overlayY = mouseY - offsetY;
+        drawCanvas();
+      }
+    }
+
+    function handleEnd() {
       isDragging = false;
       isResizing = false;
-    });
+    }
 
-    // Download Canvas
+    // Add mouse and touch event listeners
+    canvas.addEventListener("mousedown", handleStart);
+    canvas.addEventListener("mousemove", handleMove);
+    canvas.addEventListener("mouseup", handleEnd);
+    canvas.addEventListener("mouseleave", handleEnd);
+
+    canvas.addEventListener("touchstart", handleStart);
+    canvas.addEventListener("touchmove", handleMove);
+    canvas.addEventListener("touchend", handleEnd);
+
+    // Add download functionality
     document.getElementById("downloadButton").addEventListener("click", () => {
       const link = document.createElement("a");
       link.download = "canvas-image.png";
-      link.href = canvas.toDataURL();
+      link.href = canvas.toDataURL("image/png");
       link.click();
     });
   </script>
