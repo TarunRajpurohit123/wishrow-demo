@@ -30,7 +30,7 @@
     .upload-section {
       margin: 20px 0;
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
       gap: 15px;
       align-items: center;
       justify-content: center;
@@ -43,6 +43,8 @@
       background-color: #f9f9f9;
       cursor: pointer;
       transition: all 0.3s ease;
+      width: 100%;
+      max-width: 300px;
     }
 
     input[type="file"]:hover {
@@ -57,6 +59,8 @@
       cursor: crosshair;
       border-radius: 8px;
       background-color: #fff;
+      max-width: 100%;
+      height: auto;
     }
 
     .footer {
@@ -66,7 +70,7 @@
       color: #777;
     }
 
-    .toggle-controls {
+    .toggle-controls, .opacity-controls, .download-controls {
       text-align: center;
       margin: 20px 0;
     }
@@ -81,19 +85,54 @@
       font-size: 14px;
       font-weight: bold;
       transition: background-color 0.3s ease;
+      width: 100%;
+      max-width: 200px;
     }
 
     button:hover {
       background-color: #333;
     }
 
-    .opacity-controls {
-      text-align: center;
-      margin-top: 20px;
-    }
-
     .opacity-controls input {
       width: 100%;
+    }
+
+    /* Media queries for smaller screens */
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+
+      h1 {
+        font-size: 1.5em;
+      }
+
+      input[type="file"] {
+        max-width: 90%;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .upload-section {
+        flex-direction: column;
+      }
+
+      canvas {
+        width: 100%;
+        height: auto;
+      }
+    }
+
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 1.2em;
+      }
+
+      button {
+        font-size: 12px;
+      }
     }
   </style>
 </head>
@@ -118,6 +157,10 @@
     </div>
 
     <canvas id="imageCanvas" width="800"></canvas>
+
+    <div class="download-controls">
+      <button id="downloadButton">Download Canvas</button>
+    </div>
 
     <div class="footer">
       <p>Drag, resize, and adjust opacity of the overlay image directly on the canvas.</p>
@@ -276,6 +319,14 @@
     canvas.addEventListener("mouseleave", () => {
       isDragging = false;
       isResizing = false;
+    });
+
+    // Add download functionality
+    document.getElementById("downloadButton").addEventListener("click", () => {
+      const link = document.createElement("a");
+      link.download = "canvas-image.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
     });
   </script>
 </body>
